@@ -29,8 +29,21 @@ type Octree struct {
 	
 }
 
-func init(){
+func init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *QuadTree {
+		
+	var qt *QuadTree
 	
+	dimx := xmax - xmin + 1
+	dimy := ymax - ymin + 1
+	dimz := zmax - zmin + 1
+	
+	depthx := int64(math.log2(dimx)+0.5)-math.log2(otW)+1
+	depthy := int64(math.log2(dimy)+0.5)-math.log2(otH)+1
+	depthz := int64(math.log2(dimz)+0.5)-math.log2(otD)+1
+	
+	depth := math.Max(depthx, depthy)
+	
+	construct(nil,qt,depth,0,0,0,0,resx,resy,resz,xmin,ymin,zmin,otW,otH,otD,ch)
 }
 
 func construct(parent,root *Octree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {

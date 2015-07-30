@@ -1,20 +1,26 @@
 package Node
 
 import (
-	"math"
-	"log"
-	"runtime"
-	"sync"
 	"image"
 )
 
 const (
-	minW=64
-	minH=64
-	minD=64
+	otW=64
+	otH=64
+	otD=64
+	
+	qtW=512
+	qtH=512
 )
 
-type NodeOT struct {
+type Data struct {
+	
+	key int64
+	val image.Image
+	
+}
+
+type Node struct {
 
 	coordx int64	// tile coordinates
 	coordy int64
@@ -36,5 +42,8 @@ type NodeOT struct {
 	// ymax = ymin + height - 1
 	// zmax = zmin + depth - 1
 	
-	data interface{}
+	buf *Data
 }
+
+
+
