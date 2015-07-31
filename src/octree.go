@@ -12,7 +12,9 @@ type Octree struct {
 
 	depth int
 	level int
-	leaf  bool
+	
+	isLeaf		bool
+	dataAvail	bool
 	
 	parent *Octree
 	

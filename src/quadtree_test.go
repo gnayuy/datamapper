@@ -8,6 +8,6 @@ import(
 	
 )
 
-func test(){
+func test(t *testing.T){
 	
 }
