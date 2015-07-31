@@ -8,6 +8,8 @@ import (
 	"image"
 	"github.com/nfnt/resize"
 	
+	"fmt"
+	
 	"github.com/gnayuy/datamapper/node"
 )
 
@@ -43,22 +45,26 @@ type QuadTree struct {
 }
 
 // VoxelSize, MinPoint, MaxPoint
-func init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *QuadTree {
+func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *QuadTree {
 		
 	var qt *QuadTree
 	
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
 	
-	depthx := int64(math.log2(dimx)+0.5)-math.log2(qtW)+1
-	depthy := int64(math.log2(dimy)+0.5)-math.log2(qtH)+1
+	depthx := int64(math.Log2(dimx)+0.5)-math.Log2(qtW)+1
+	depthy := int64(math.Log2(dimy)+0.5)-math.Log2(qtH)+1
 	
 	depth := math.Max(depthx, depthy)
 	
-	construct(nil,qt,depth,0,xim,ymin,zmin,resx,resy,resz,0,0,0,minW,minH,minD,ch)
+	fmt.Println("The depth of this quadtree is ", depth)
+	
+	Construct(nil,qt,depth,0,xim,ymin,zmin,resx,resy,resz,0,0,0,minW,minH,minD,ch)
+	
+	return qt
 }
 
-func construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
+func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
 	
 	depth = depth - 1
 	level = level + 1
@@ -92,16 +98,16 @@ func construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,
 		cy = cy * 2
 		cz = cz * 2
 		
-		go construct(root,root->topLeft,     depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->topRight,    depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,cz,w,h,d,ch)
-		go construct(root,root->bottomLeft,  depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy+1,cz,w,h,d,ch)
-		go construct(root,root->bottomRight, depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+		go Construct(root,root->topLeft,     depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy,cz,w,h,d,ch)
+		go Construct(root,root->topRight,    depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,cz,w,h,d,ch)
+		go Construct(root,root->bottomLeft,  depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy+1,cz,w,h,d,ch)
+		go Construct(root,root->bottomRight, depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
 		
 	}
 	
 }
 
-func getData(qt *QuadTree, ch chan bool) {
+func GetData(qt *QuadTree, ch chan bool) {
 	// if it is leaf, get the data from database
 	// else get the data from its childtren and then resize
 	
@@ -118,10 +124,10 @@ func getData(qt *QuadTree, ch chan bool) {
 		}else{
 			// get data from its children's data
 			
-			go getData(qt->topLeft,		ch)
-			go getData(qt->topRight,	ch)
-			go getData(qt->bottomLeft,	ch)
-			go getData(qt->bottomRight,	ch)
+			go GetData(qt->topLeft,		ch)
+			go GetData(qt->topRight,	ch)
+			go GetData(qt->bottomLeft,	ch)
+			go GetData(qt->bottomRight,	ch)
 			
 			// resize
 			
