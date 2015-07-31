@@ -10,6 +10,13 @@ import (
 	"github.com/gnayuy/datamapper/node"
 )
 
+const (
+	otW=64
+	otH=64
+	otD=64
+
+)
+
 type Octree struct {
 
 	depth int

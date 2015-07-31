@@ -2,11 +2,11 @@ package quadtree
 
 import (
 	"math"
-	"log"
-	"runtime"
-	"sync"
-	"image"
-	"github.com/nfnt/resize"
+	//"log"
+	//"runtime"
+	//"sync"
+	//"image"
+	//"github.com/nfnt/resize"
 	
 	"fmt"
 	
@@ -24,6 +24,10 @@ import (
  //    |      |      |
  //    +––––––+––––––+
  
+const (
+	qtW=512
+	qtH=512
+)
 
 type QuadTree struct {
 
@@ -40,7 +44,7 @@ type QuadTree struct {
 	bottomLeft 	*QuadTree // 10
 	bottomRight	*QuadTree // 11
 	
-	node 		*Node
+	node 		*node.Node
 	
 }
 
@@ -52,19 +56,24 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *Q
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
 	
-	depthx := int64(math.Log2(dimx)+0.5)-math.Log2(qtW)+1
-	depthy := int64(math.Log2(dimy)+0.5)-math.Log2(qtH)+1
+	depthx := int(math.Log2(float64(dimx))+0.5)-int(math.Log2(float64(qtW)))+1
+	depthy := int(math.Log2(float64(dimy))+0.5)-int(math.Log2(float64(qtH)))+1
 	
-	depth := math.Max(depthx, depthy)
+	depth := int(math.Max(float64(depthx), float64(depthy)))
 	
 	fmt.Println("The depth of this quadtree is ", depth)
-	
-	Construct(nil,qt,depth,0,xim,ymin,zmin,resx,resy,resz,0,0,0,minW,minH,minD,ch)
+
+	ch := make(chan bool)
+	go func() {
+	    Construct(nil,qt,depth,0,xmin,ymin,zmin,resx,resy,resz,0,0,0,qtW,qtH,1,ch)
+	    ch <- false
+	}()
+	<- ch
 	
 	return qt
 }
 
-func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
+func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
 	
 	depth = depth - 1
 	level = level + 1
@@ -75,18 +84,18 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,
 		
 	}else{
 		
-		root = &QuadTree{depth,level,false,parent,nil,nil,nil,nil,nil,nil,nil,nil,nil}
+		root = &QuadTree{depth,level,false,false,parent,nil,nil,nil,nil,nil}
 		
-		root.node = &Node{cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin}
+		root.node = node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
 		root.depth = depth + 1
 		
 		root.dataAvail = false
 		
 		if(depth==0){
-			root.leaf = true
+			root.isLeaf = true
 		}else{
-			root.leaf = false
-		}	
+			root.isLeaf = false
+		}
 		
 		root.parent = parent
 		
@@ -116,7 +125,7 @@ func GetData(qt *QuadTree, ch chan bool) {
 		return;
 	}else{
 		
-		if(qt.leaf==true){
+		if(qt.isLeaf==true){
 			// get data
 			
 			// save data if not empty

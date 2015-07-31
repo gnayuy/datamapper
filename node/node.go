@@ -4,15 +4,6 @@ import (
 	"image"
 )
 
-const (
-	otW=64
-	otH=64
-	otD=64
-	
-	qtW=512
-	qtH=512
-)
-
 type Data struct {
 	
 	key int64
@@ -34,15 +25,41 @@ type Node struct {
 	resy float64
 	resz float64
 	
-	xmin float64	// physical coordinates
-	ymin float64
-	zmin float64
+	xmin int64	// physical coordinates
+	ymin int64
+	zmin int64
 	
 	// xmax = xmin + width - 1
 	// ymax = ymin + height - 1
 	// zmax = zmin + depth - 1
 	
 	buf *Data
+}
+
+func NewNode(cx,cy,cz int64, w,h,d int64, rx,ry,rz float64, x,y,z int64, p *Data) *Node {
+	
+	var n *Node
+	
+	n.coordx = cx
+	n.coordy = cy
+	n.coordz = cz
+	
+	n.width = w
+	n.height = h
+	n.depth = d
+	
+	n.resx = rx
+	n.resy = ry
+	n.resz = rz
+	
+	n.xmin = x
+	n.ymin = y
+	n.zmin = z
+	
+	n.buf = p
+	
+	return n
+	
 }
 
 
