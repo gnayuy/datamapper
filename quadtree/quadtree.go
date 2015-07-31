@@ -77,18 +77,18 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,
 		
 		root = &QuadTree{depth,level,false,parent,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 		
-		root->node = &Node{cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin}
-		root->depth = depth + 1
+		root.node = &Node{cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin}
+		root.depth = depth + 1
 		
-		root->dataAvail = false
+		root.dataAvail = false
 		
 		if(depth==0){
-			root->leaf = true
+			root.leaf = true
 		}else{
-			root->leaf = false
+			root.leaf = false
 		}	
 		
-		root->parent = parent
+		root.parent = parent
 		
 		resx = resx / 2.0
 		resy = resy / 2.0
@@ -98,10 +98,10 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin,resx,resy,
 		cy = cy * 2
 		cz = cz * 2
 		
-		go Construct(root,root->topLeft,     depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy,cz,w,h,d,ch)
-		go Construct(root,root->topRight,    depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,cz,w,h,d,ch)
-		go Construct(root,root->bottomLeft,  depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy+1,cz,w,h,d,ch)
-		go Construct(root,root->bottomRight, depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+		go Construct(root,root.topLeft,     depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy,cz,w,h,d,ch)
+		go Construct(root,root.topRight,    depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,cz,w,h,d,ch)
+		go Construct(root,root.bottomLeft,  depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy+1,cz,w,h,d,ch)
+		go Construct(root,root.bottomRight, depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
 		
 	}
 	
@@ -111,12 +111,12 @@ func GetData(qt *QuadTree, ch chan bool) {
 	// if it is leaf, get the data from database
 	// else get the data from its childtren and then resize
 	
-	if(qt->dataAvail==true){
+	if(qt.dataAvail==true){
 		ch <- true
 		return;
 	}else{
 		
-		if(qt->leaf==true){
+		if(qt.leaf==true){
 			// get data
 			
 			// save data if not empty
@@ -124,17 +124,17 @@ func GetData(qt *QuadTree, ch chan bool) {
 		}else{
 			// get data from its children's data
 			
-			go GetData(qt->topLeft,		ch)
-			go GetData(qt->topRight,	ch)
-			go GetData(qt->bottomLeft,	ch)
-			go GetData(qt->bottomRight,	ch)
+			go GetData(qt.topLeft,		ch)
+			go GetData(qt.topRight,	ch)
+			go GetData(qt.bottomLeft,	ch)
+			go GetData(qt.bottomRight,	ch)
 			
 			// resize
 			
 			// save data
 		}
 		
-		qt->dataAvail = true;
+		qt.dataAvail = true;
 	}
 	
 }
