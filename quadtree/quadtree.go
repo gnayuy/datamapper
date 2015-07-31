@@ -35,14 +35,14 @@ type QuadTree struct {
 	level		int
 	
 	isLeaf		bool
-	dataAvail	bool
+	dataAvail	bool // in immutable storage ?
 	
 	parent		*QuadTree
 	
-	topLeft 	*QuadTree // 00
-	topRight 	*QuadTree // 01
-	bottomLeft 	*QuadTree // 10
-	bottomRight	*QuadTree // 11
+	TL			*QuadTree // 00
+	TR			*QuadTree // 01
+	BL			*QuadTree // 10
+	BR			*QuadTree // 11
 	
 	node 		*node.Node
 	
@@ -107,10 +107,10 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 		cy = cy * 2
 		cz = cz * 2
 		
-		go Construct(root,root.topLeft,     depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy,cz,w,h,d,ch)
-		go Construct(root,root.topRight,    depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,cz,w,h,d,ch)
-		go Construct(root,root.bottomLeft,  depth,level,xmin,ymin,zmin,resx,resy,resz,cx,cy+1,cz,w,h,d,ch)
-		go Construct(root,root.bottomRight, depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+		go Construct(root,root.TL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
+		go Construct(root,root.TR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
+		go Construct(root,root.BL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
+		go Construct(root,root.BR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
 		
 	}
 	
@@ -133,10 +133,10 @@ func GetData(qt *QuadTree, ch chan bool) {
 		}else{
 			// get data from its children's data
 			
-			go GetData(qt.topLeft,		ch)
-			go GetData(qt.topRight,	ch)
-			go GetData(qt.bottomLeft,	ch)
-			go GetData(qt.bottomRight,	ch)
+			go GetData(qt.TL,ch)
+			go GetData(qt.TR,ch)
+			go GetData(qt.BL,ch)
+			go GetData(qt.BR,ch)
 			
 			// resize
 			
