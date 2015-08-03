@@ -48,10 +48,15 @@ type QuadTree struct {
 	
 }
 
+type empty struct {}
+type semaphore chan empty
+
 // VoxelSize, MinPoint, MaxPoint
-func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *QuadTree {
+func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[]QuadTree {
 		
-	var qt *QuadTree
+	dimz := zmax - zmin + 1
+	
+	qt := make([]QuadTree, dimz)
 	
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
@@ -63,12 +68,23 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *Q
 	
 	fmt.Println("The depth of this quadtree is ", depth)
 
-	ch := make(chan bool)
-	go func() {
-	    Construct(nil,qt,depth,0,xmin,ymin,zmin,resx,resy,resz,0,0,0,qtW,qtH,1,ch)
-	    ch <- false
-	}()
-	<- ch
+	//go func() {
+	//    Construct(nil,qt,depth,0,xmin,ymin,zmin,resx,resy,resz,0,0,0,qtW,qtH,1,ch)
+	//    ch <- false
+	//}()
+	//<- ch
+	
+	sem := make (semaphore, dimz);
+	for z := zmin; z < zmax; z++ {
+		ch := make(chan bool)
+        go func (z int64) {
+            Construct(nil,qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
+            sem <- empty{};
+        } (z);
+    }
+    for z := zmin; z < zmax; z++ {
+		<- sem // release dimz resources
+	}
 	
 	return qt
 }
