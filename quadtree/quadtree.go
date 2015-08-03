@@ -78,7 +78,7 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[
 	for z := zmin; z < zmax; z++ {
 		ch := make(chan bool)
         go func (z int64) {
-            Construct(nil,qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
+            Construct(nil,&qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
             sem <- empty{};
         } (z);
     }
@@ -86,7 +86,7 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[
 		<- sem // release dimz resources
 	}
 	
-	return qt
+	return &qt
 }
 
 func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
