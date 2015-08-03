@@ -17,7 +17,7 @@ type Node struct {
 	coordy int64
 	coordz int64
 	
-	width int64		// tile dimensions
+	width int64	// tile dimensions
 	height int64
 	depth int64
 	
