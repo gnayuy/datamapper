@@ -39,10 +39,10 @@ type QuadTree struct {
 	
 	parent		*QuadTree
 	
-	TL			*QuadTree // 00
-	TR			*QuadTree // 01
-	BL			*QuadTree // 10
-	BR			*QuadTree // 11
+	TL		*QuadTree // 00
+	TR		*QuadTree // 01
+	BL		*QuadTree // 10
+	BR		*QuadTree // 11
 	
 	node 		*node.Node
 	
