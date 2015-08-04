@@ -52,12 +52,15 @@ type empty struct {}
 type semaphore chan empty
 
 // VoxelSize, MinPoint, MaxPoint
-func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[]QuadTree {
+func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []*QuadTree {
 		
 	dimz := zmax - zmin + 1
 	
-	qt := make([]QuadTree, dimz)
-	
+	qt := make([]*QuadTree, dimz)	
+	for i := range qt {
+    	qt[i] = new(QuadTree)
+	}
+
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
 	
@@ -67,18 +70,12 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[
 	depth := int(math.Max(float64(depthx), float64(depthy)))
 	
 	fmt.Println("The depth of this quadtree is ", depth)
-
-	//go func() {
-	//    Construct(nil,qt,depth,0,xmin,ymin,zmin,resx,resy,resz,0,0,0,qtW,qtH,1,ch)
-	//    ch <- false
-	//}()
-	//<- ch
 	
 	sem := make (semaphore, dimz);
 	for z := zmin; z < zmax; z++ {
 		ch := make(chan bool)
         go func (z int64) {
-            Construct(nil,&qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
+            Construct(nil,qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
             sem <- empty{};
 			
 			<-ch
@@ -89,7 +86,7 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[
 		<- sem // release dimz resources
 	}
 	
-	return &qt
+	return qt
 }
 
 func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
@@ -106,6 +103,8 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 	}else{
 		
 		root = &QuadTree{depth,level,false,false,parent,nil,nil,nil,nil,nil}
+		
+		fmt.Printf("root.depth %v root.level %v \n",root.depth, root.level)
 		
 		root.node = new(node.Node)
 		root.node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
