@@ -80,6 +80,9 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *[
         go func (z int64) {
             Construct(nil,&qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
             sem <- empty{};
+			
+			<-ch
+			
         } (z);
     }
     for z := zmin; z < zmax; z++ {
@@ -93,6 +96,8 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 	
 	depth = depth - 1
 	level = level + 1
+	
+	fmt.Printf("Construct depth %v level %v \n",depth, level)
 	
 	if(depth < 0){
 		ch <- true
@@ -123,10 +128,12 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 		cy = cy * 2
 		cz = cz * 2
 		
-		go Construct(root,root.TL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
-		go Construct(root,root.TR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
-		go Construct(root,root.BL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
-		go Construct(root,root.BR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+		go func() {
+			Construct(root,root.TL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
+			Construct(root,root.TR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
+			Construct(root,root.BL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
+			Construct(root,root.BR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+		}()
 		
 	}
 	
