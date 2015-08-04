@@ -36,9 +36,7 @@ type Node struct {
 	buf *Data
 }
 
-func NewNode(cx,cy,cz int64, w,h,d int64, rx,ry,rz float64, x,y,z int64, p *Data) *Node {
-	
-	var n *Node
+func (n *Node) NewNode(cx,cy,cz int64, w,h,d int64, rx,ry,rz float64, x,y,z int64, p *Data) *Node {
 	
 	n.coordx = cx
 	n.coordy = cy
@@ -62,7 +60,7 @@ func NewNode(cx,cy,cz int64, w,h,d int64, rx,ry,rz float64, x,y,z int64, p *Data
 	
 }
 
-func GetNode(n *Node)(int64, int64, int64, int64, int64, int64, float64, float64, float64, int64, int64, int64, *Data){
+func (n *Node) GetNode()(int64, int64, int64, int64, int64, int64, float64, float64, float64, int64, int64, int64, *Data){
 	return n.coordx,n.coordx,n.coordz,n.width,n.height,n.depth,n.resx,n.resy,n.resz,n.xmin,n.ymin,n.zmin,n.buf
 }
 

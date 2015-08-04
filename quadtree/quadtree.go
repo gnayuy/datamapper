@@ -107,7 +107,9 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 		
 		root = &QuadTree{depth,level,false,false,parent,nil,nil,nil,nil,nil}
 		
-		root.node = node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
+		root.node = new(node.Node)
+		root.node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
+		
 		root.depth = depth + 1
 		
 		root.dataAvail = false
