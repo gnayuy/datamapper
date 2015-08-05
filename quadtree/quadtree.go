@@ -39,10 +39,10 @@ type QuadTree struct {
 	
 	parent		*QuadTree
 	
-	TL		*QuadTree // 00
-	TR		*QuadTree // 01
-	BL		*QuadTree // 10
-	BR		*QuadTree // 11
+	TL		*QuadTree // 00  0
+	TR		*QuadTree // 01  1
+	BL		*QuadTree // 10  2
+	BR		*QuadTree // 11  3
 	
 	node 		*node.Node
 	
@@ -52,13 +52,13 @@ type empty struct {}
 type semaphore chan empty
 
 // VoxelSize, MinPoint, MaxPoint
-func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []*QuadTree {
+func (qt *QuadTree) Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []*QuadTree {
 		
 	dimz := zmax - zmin + 1
 	
-	qt := make([]*QuadTree, dimz)	
-	for i := range qt {
-    	qt[i] = new(QuadTree)
+	qtlist := make([]*QuadTree, dimz)	
+	for i := range qtlist {
+    	qtlist[i] = new(QuadTree)
 	}
 
 	dimx := xmax - xmin + 1
@@ -75,7 +75,7 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []
 	for z := zmin; z < zmax; z++ {
 		ch := make(chan bool)
         go func (z int64) {
-            Construct(nil,qt[z],depth,0,xmin,ymin,z,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
+            qtlist[z].Construct(nil,0,depth,-1,xmin,ymin,z,xmax,ymax,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
             sem <- empty{};
 			
 			<-ch
@@ -86,40 +86,67 @@ func Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []
 		<- sem // release dimz resources
 	}
 	
-	return qt
+	fmt.Printf("~~~parent's children %v %v %v %v \n", qtlist[0].TL, qtlist[0].TR, qtlist[0].BL, qtlist[0].BR)
+	
+	return qtlist
 }
 
-func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
+func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin,zmin,xmax,ymax int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
 	
 	depth = depth - 1
 	level = level + 1
 	
-	fmt.Printf("Construct depth %v level %v \n",depth, level)
+	fmt.Printf("Construct depth %v level %v cx %v cy %v\n",depth, level, cx, cy)
 	
-	if(depth < 0){
+	if(depth < 0 || xmin>xmax || ymin>ymax){
 		ch <- true
 		return
 		
 	}else{
 		
-		root = &QuadTree{depth,level,false,false,parent,nil,nil,nil,nil,nil}
+		qt = &QuadTree{depth,level,false,false,parent,nil,nil,nil,nil,nil}
 		
-		fmt.Printf("root.depth %v root.level %v \n",root.depth, root.level)
+		fmt.Printf("current tile %v \n",qt)
 		
-		root.node = new(node.Node)
-		root.node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
+		qt.node = new(node.Node)
+		qt.node.NewNode(cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin,nil)
 		
-		root.depth = depth + 1
+		qt.depth = depth
 		
-		root.dataAvail = false
+		qt.dataAvail = false
 		
 		if(depth==0){
-			root.isLeaf = true
+			qt.isLeaf = true
 		}else{
-			root.isLeaf = false
+			qt.isLeaf = false
 		}
 		
-		root.parent = parent
+		qt.parent = parent
+		
+		if(parent!=nil){
+						
+			if(child==0){
+				fmt.Println("case 0")
+				qt.parent.TL = qt
+			}else if(child==1){
+				fmt.Println("case 1")
+				qt.parent.TR = qt
+			}else if(child==2){
+				fmt.Println("case 2")
+				qt.parent.BL = qt
+			}else if(child==3){
+				fmt.Println("case 3")
+				qt.parent.BR = qt
+			}else
+			{
+				fmt.Println("Invalid child", child)
+				ch <- false
+				return
+			}
+			
+			fmt.Printf("parent's children %v %v %v %v \n", parent.TL, parent.TR, parent.BL, parent.BR)
+			
+		}
 		
 		resx = resx / 2.0
 		resy = resy / 2.0
@@ -128,19 +155,19 @@ func Construct(parent,root *QuadTree, depth,level int, xmin,ymin,zmin int64, res
 		cx = cx * 2
 		cy = cy * 2
 		cz = cz * 2
-		
+
 		go func() {
-			Construct(root,root.TL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
-			Construct(root,root.TR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
-			Construct(root,root.BL,depth,level,xmin,ymin,zmin,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
-			Construct(root,root.BR,depth,level,xmin,ymin,zmin,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+			qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
+			qt.TR.Construct(qt,1,depth,level,xmin+w,ymin,  zmin,xmax,ymax,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
+			qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
+			qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
 		}()
 		
 	}
 	
 }
 
-func GetData(qt *QuadTree, ch chan bool) {
+func (qt *QuadTree) GetData(ch chan bool) {
 	// if it is leaf, get the data from database
 	// else get the data from its childtren and then resize
 	
@@ -157,10 +184,10 @@ func GetData(qt *QuadTree, ch chan bool) {
 		}else{
 			// get data from its children's data
 			
-			go GetData(qt.TL,ch)
-			go GetData(qt.TR,ch)
-			go GetData(qt.BL,ch)
-			go GetData(qt.BR,ch)
+			go qt.TL.GetData(ch)
+			go qt.TR.GetData(ch)
+			go qt.BL.GetData(ch)
+			go qt.BR.GetData(ch)
 			
 			// resize
 			

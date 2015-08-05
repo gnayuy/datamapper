@@ -40,9 +40,9 @@ type Octree struct {
 	
 }
 
-func init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *QuadTree {
+func init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *Octree {
 		
-	var qt *QuadTree
+	var oct *Octree
 	
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
@@ -54,10 +54,10 @@ func init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) *Q
 	
 	depth := math.Max(depthx, depthy)
 	
-	construct(nil,qt,depth,0,0,0,0,resx,resy,resz,xmin,ymin,zmin,otW,otH,otD,ch)
+	construct(nil,oct,depth,-1,0,0,0,resx,resy,resz,xmin,ymin,zmin,otW,otH,otD,ch)
 }
 
-func construct(parent,root *Octree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
+func construct(parent,tile *Octree, depth,level int, xmin,ymin,zmin,resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
 	
 	depth = depth - 1
 	level = level + 1
@@ -68,25 +68,25 @@ func construct(parent,root *Octree, depth,level int, xmin,ymin,zmin,resx,resy,re
 		
 	}else{
 		
-		root = &Octree{depth,level,false,parent,nil,nil,nil,nil,nil,nil,nil,nil,nil}
+		tile = &Octree{depth,level,false,parent,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 		
-		root->node = &Node{cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin}
-		root->depth = depth + 1
+		tile->node = &Node{cx,cy,cz,w,h,d,resx,resy,resz,xmin,ymin,zmin}
+		tile->depth = depth
 		
-		root->parent = parent
+		tile->parent = parent
 		
 		resx = resx / 2.0
 		resy = resy / 2.0
 		resz = resz / 2.0
 		
-		go construct(root,root->topLeftFront,     depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->topLeftBack,      depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->bottomLeftFront,  depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->bottomLeftBack,   depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->topRightFront,    depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->topRightBack,     depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->bottomRightFront, depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
-		go construct(root,root->bottomRightBack,  depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->topLeftFront,     depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->topLeftBack,      depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->bottomLeftFront,  depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->bottomLeftBack,   depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->topRightFront,    depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->topRightBack,     depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->bottomRightFront, depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
+		go construct(tile,tile->bottomRightBack,  depth,level,xmin,ymin,zmin,resx,resy resz,cx,cy,cz,w,h,d,ch)
 			
 		
 	}
