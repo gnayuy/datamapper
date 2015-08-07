@@ -62,14 +62,30 @@ func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, re
 	dimx := xmax - xmin + 1
 	dimy := ymax - ymin + 1
 	
-	depthx := int(math.Log2(float64(dimx))+0.5)-int(math.Log2(float64(qtW)))+1
-	depthy := int(math.Log2(float64(dimy))+0.5)-int(math.Log2(float64(qtH)))+1
+	var depthx,depthy int
+	
+	if(dimx>qtW){
+		depthx = int(math.Log2(float64(dimx))+0.5)-int(math.Log2(float64(qtW)))+1
+	}else{
+		depthx = 1
+	}
+	
+	if(dimy>qtH){
+		depthy = int(math.Log2(float64(dimy))+0.5)-int(math.Log2(float64(qtH)))+1
+	}else{
+		depthy = 1
+	}
 	
 	depth := int(math.Max(float64(depthx), float64(depthy)))
 	
 	tasks := qt.TaskLoad(depth)
 	
 	fmt.Printf("The depth of this quadtree is %v with %v tasks assigned\n", depth, tasks)
+	
+	for i:=1; i<depth; i++ {
+		resx *= 2.0
+		resy *= 2.0
+	}
 	
 	ch := make(chan bool)
     wg.Add(1)
@@ -87,7 +103,7 @@ func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, re
 	
 	//wg.Wait()
 	
-	fmt.Printf("~~~parent's children %v %v %v %v \n", qt.TL, qt.TR, qt.BL, qt.BR)
+	fmt.Printf("~~~parent's children %v %v %v %v %v %v\n", qt.TL, qt.TR, qt.BL, qt.BR, resx, resy)
 }
 
 // VoxelSize, MinPoint, MaxPoint
@@ -161,12 +177,6 @@ func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin
 		
 		qt.dataAvail = false
 		
-		if(depth==0){
-			qt.isLeaf = true
-		}else{
-			qt.isLeaf = false
-		}
-		
 		qt.parent = parent
 		
 		if(parent!=nil){
@@ -194,15 +204,20 @@ func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin
 			
 		}
 		
-		resx = resx / 2.0
-		resy = resy / 2.0
-		resz = resz / 2.0
+		if(depth==0){
+			qt.isLeaf = true
+			ch <- true
+			return
+		}else{
+			qt.isLeaf = false
+			
+			resx /= 2.0
+			resy /= 2.0
+			
+			cx *= 2
+			cy *= 2
 		
-		cx = cx * 2
-		cy = cy * 2
-		cz = cz * 2
-
-		go func() {
+			go func() {
 			wg.Add(1)
 			qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch,wg)
 			wg.Add(1)
@@ -211,8 +226,9 @@ func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin
 			qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch,wg)
 			wg.Add(1)
 			qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch,wg)
-		}()
-		
+			}()
+		}
+	
 	}
 	
 }
