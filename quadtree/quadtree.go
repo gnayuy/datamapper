@@ -3,8 +3,8 @@ package quadtree
 import (
 	"math"
 	//"log"
-	//"runtime"
-	//"sync"
+	"runtime"
+	"sync"
 	//"image"
 	//"github.com/nfnt/resize"
 	
@@ -29,13 +29,16 @@ const (
 	qtH=512
 )
 
+// wait for the program to finish
+var wg sync.WaitGroup
+
 type QuadTree struct {
 
 	depth		int
 	level		int
 	
 	isLeaf		bool
-	dataAvail	bool // in immutable storage ?
+	dataAvail	bool // in immutable storage ? scality
 	
 	parent		*QuadTree
 	
@@ -51,10 +54,46 @@ type QuadTree struct {
 type empty struct {}
 type semaphore chan empty
 
+// InitOneLayer
+func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, resz float64) {
+
+	qt = new(QuadTree)
+
+	dimx := xmax - xmin + 1
+	dimy := ymax - ymin + 1
+	
+	depthx := int(math.Log2(float64(dimx))+0.5)-int(math.Log2(float64(qtW)))+1
+	depthy := int(math.Log2(float64(dimy))+0.5)-int(math.Log2(float64(qtH)))+1
+	
+	depth := int(math.Max(float64(depthx), float64(depthy)))
+	
+	tasks := qt.TaskLoad(depth)
+	
+	fmt.Printf("The depth of this quadtree is %v with %v tasks assigned\n", depth, tasks)
+	
+	ch := make(chan bool)
+    wg.Add(1)
+	go qt.Construct(nil,0,depth,-1,xmin,ymin,z,xmax,ymax,resx,resy,resz,0,0,0,qtW,qtH,1,ch,&wg)
+	//<-ch
+	
+	go func() {
+        wg.Wait()
+        close(ch)
+    }()
+	
+	for i := range ch {
+		fmt.Println("~~~channels ",i)
+	}
+	
+	//wg.Wait()
+	
+	fmt.Printf("~~~parent's children %v %v %v %v \n", qt.TL, qt.TR, qt.BL, qt.BR)
+}
+
 // VoxelSize, MinPoint, MaxPoint
 func (qt *QuadTree) Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, resz float64) []*QuadTree {
 		
-	dimz := zmax - zmin + 1
+	dimz := int(zmax - zmin + 1)
 	
 	qtlist := make([]*QuadTree, dimz)	
 	for i := range qtlist {
@@ -71,27 +110,34 @@ func (qt *QuadTree) Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, r
 	
 	fmt.Println("The depth of this quadtree is ", depth)
 	
-	sem := make (semaphore, dimz);
+	wg.Add(dimz)
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	
+	//sem := make (semaphore, dimz);
 	for z := zmin; z < zmax; z++ {
 		ch := make(chan bool)
         go func (z int64) {
-            qtlist[z].Construct(nil,0,depth,-1,xmin,ymin,z,xmax,ymax,resx,resy,resz,0,0,0,qtW,qtH,1,ch) 
-            sem <- empty{};
+            qtlist[z].Construct(nil,0,depth,-1,xmin,ymin,z,xmax,ymax,resx,resy,resz,0,0,0,qtW,qtH,1,ch,&wg) 
+            //sem <- empty{};
 			
 			<-ch
 			
         } (z);
     }
-    for z := zmin; z < zmax; z++ {
-		<- sem // release dimz resources
-	}
+    //for z := zmin; z < zmax; z++ {
+	//	<- sem // release dimz resources
+	//}
+	
+	wg.Wait()
 	
 	fmt.Printf("~~~parent's children %v %v %v %v \n", qtlist[0].TL, qtlist[0].TR, qtlist[0].BL, qtlist[0].BR)
 	
 	return qtlist
 }
 
-func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin,zmin,xmax,ymax int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool) {
+func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin,zmin,xmax,ymax int64, resx,resy,resz float64, cx,cy,cz,w,h,d int64, ch chan bool, wg *sync.WaitGroup) {
+	
+	defer wg.Done()
 	
 	depth = depth - 1
 	level = level + 1
@@ -157,15 +203,34 @@ func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin
 		cz = cz * 2
 
 		go func() {
-			qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch)
-			qt.TR.Construct(qt,1,depth,level,xmin+w,ymin,  zmin,xmax,ymax,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch)
-			qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch)
-			qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch)
+			wg.Add(1)
+			qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch,wg)
+			wg.Add(1)
+			qt.TR.Construct(qt,1,depth,level,xmin+w,ymin,  zmin,xmax,ymax,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch,wg)
+			wg.Add(1)
+			qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch,wg)
+			wg.Add(1)
+			qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch,wg)
 		}()
 		
 	}
 	
 }
+
+// the number of leaves
+func (qt *QuadTree) TaskLoad(depth int) int{
+	
+	var sum int
+	
+	sum = 0
+	
+	for i:=0; i<depth; i++{
+		sum += int(math.Pow(4,float64(i)))
+	}
+	
+	return int(math.Pow(4,float64(depth-1)))
+}
+
 
 func (qt *QuadTree) GetData(ch chan bool) {
 	// if it is leaf, get the data from database
