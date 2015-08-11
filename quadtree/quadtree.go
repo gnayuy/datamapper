@@ -55,7 +55,7 @@ type empty struct {}
 type semaphore chan empty
 
 // InitOneLayer
-func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, resz float64) {
+func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, resz float64) *QuadTree{
 
 	qt = new(QuadTree)
 
@@ -94,16 +94,24 @@ func (qt *QuadTree) InitOneLayer(xmin, xmax, ymin, ymax, z int64, resx, resy, re
 	
 	go func() {
         wg.Wait()
-        close(ch)
-    }()
+        //close(ch)	
+		<-ch	
+	}()
 	
-	for i := range ch {
-		fmt.Println("~~~channels ",i)
-	}
+	
+	//close(ch)
+	
+//	for i := range ch {
+//		fmt.Println("~~~channels ",i)
+//	}
 	
 	//wg.Wait()
 	
-	fmt.Printf("~~~parent's children %v %v %v %v %v %v\n", qt.TL, qt.TR, qt.BL, qt.BR, resx, resy)
+	fmt.Printf("~~~current tile %v children %v %v %v %v %v %v\n", qt, qt.TL, qt.TR, qt.BL, qt.BR, resx, resy)
+
+	qt.TraverseTree()
+
+	return qt
 }
 
 // VoxelSize, MinPoint, MaxPoint
@@ -147,6 +155,8 @@ func (qt *QuadTree) Init(xmin, xmax, ymin, ymax, zmin, zmax int64, resx, resy, r
 	wg.Wait()
 	
 	fmt.Printf("~~~parent's children %v %v %v %v \n", qtlist[0].TL, qtlist[0].TR, qtlist[0].BL, qtlist[0].BR)
+	
+	qt.TraverseTree()
 	
 	return qtlist
 }
@@ -218,15 +228,16 @@ func (qt *QuadTree) Construct(parent *QuadTree, child,depth,level int, xmin,ymin
 			cy *= 2
 		
 			go func() {
-			wg.Add(1)
-			qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch,wg)
-			wg.Add(1)
-			qt.TR.Construct(qt,1,depth,level,xmin+w,ymin,  zmin,xmax,ymax,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch,wg)
-			wg.Add(1)
-			qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch,wg)
-			wg.Add(1)
-			qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch,wg)
+				wg.Add(1)
+				qt.TL.Construct(qt,0,depth,level,xmin,  ymin,  zmin,xmax,ymax,resx,resy,resz,cx,  cy,  cz,w,h,d,ch,wg)
+				wg.Add(1)
+				qt.TR.Construct(qt,1,depth,level,xmin+w,ymin,  zmin,xmax,ymax,resx,resy,resz,cx+1,cy,  cz,w,h,d,ch,wg)
+				wg.Add(1)
+				qt.BL.Construct(qt,2,depth,level,xmin,  ymin+h,zmin,xmax,ymax,resx,resy,resz,cx,  cy+1,cz,w,h,d,ch,wg)
+				wg.Add(1)
+				qt.BR.Construct(qt,3,depth,level,xmin+w,ymin+h,zmin,xmax,ymax,resx,resy,resz,cx+1,cy+1,cz,w,h,d,ch,wg)
 			}()
+			
 		}
 	
 	}
@@ -247,7 +258,32 @@ func (qt *QuadTree) TaskLoad(depth int) int{
 	return int(math.Pow(4,float64(depth-1)))
 }
 
+// traverse
+func (qt *QuadTree) TraverseTree() {
+	
+	if(qt.TL==nil && qt.TR==nil && qt.BL==nil && qt.BR==nil){
+		qt.isLeaf = true
+		fmt.Println("re-assign isLeaf bool")
+		return
+	}else{
+		if(qt.TL!=nil){
+			go qt.TL.TraverseTree()
+		}
+		if(qt.TR!=nil){
+			go qt.TR.TraverseTree()
+		}
+		if(qt.BL!=nil){
+			go qt.BL.TraverseTree()
+		}
+		if(qt.BR!=nil){
+			go qt.BR.TraverseTree()
+		}
+		
+	}
+	
+}
 
+// read and save tiled image
 func (qt *QuadTree) GetData(ch chan bool) {
 	// if it is leaf, get the data from database
 	// else get the data from its childtren and then resize
